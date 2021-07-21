@@ -227,6 +227,19 @@ def tolist(arg):
 
 
 @jinjafilter
+@contextfilter
+def myport(ctx, arg):
+    """Get port device from fabric-topology dictionnary."""
+    temp= []
+    for device,remote in arg:
+        for remote,port in remote.items():
+            if remote == ctx.parent['shorthost']:
+                temp.append([ device, port[1], port[0]])
+            if device == ctx.parent['shorthost']:
+                temp.append([ remote,port[0], port[1]])
+    return temp
+
+@jinjafilter
 def slugify(arg):
     """Slugify its argument.
 

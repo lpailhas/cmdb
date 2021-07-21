@@ -1,0 +1,19 @@
+feature vn-segment
+feature nv overlay 
+feature bgp
+nv overlay evpn 
+ 	
+
+vlan number 10 
+ 	vn-segment number 10 
+
+vrf context vxlan
+  vni 10
+  rd auto 
+  address-family ipv4 unicast
+    route-target both auto
+    route-target both auto evpn
+  address-family ipv6 unicast 
+    route-target both auto
+    route-target both auto evpn
+

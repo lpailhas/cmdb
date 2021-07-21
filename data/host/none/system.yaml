@@ -2,3 +2,22 @@ ansible-vars:
   ansible_host: ""
   ansible_connection: local
 in-sync: true
+
+clab-devices:
+ # vr-nxos:
+ #   image: vrnetlab/vr-nxos:7.3.0.D1.1
+ #   os-map:
+ #     - nxos
+ #   port-map: >-
+ #     ~{% for iface in range(1,90) -%}
+ #     {{ "eth{}".format(iface) }}
+ #     {% endfor -%}
+  vr-n9kv:
+    image: vrnetlab/vr-n9kv:9.2.4
+    os-map:
+      - nxos
+    port-map: >-
+      ~{% for iface in range(0,90) -%}
+      {{ "eth{}".format(iface) }}
+      {% endfor -%}
+  

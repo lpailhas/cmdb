@@ -1,0 +1,43 @@
+{% set endpoints = [] %}
+{% set mgmt_address = [] %}
+{% set clab =  lookup("system","clab-devices") %}
+name: lab
+topology:
+  kinds:
+{% set already_seen = [] %}
+{% for device, local_port, remote, remote_port in store("topology") %}
+  {% set kind = scope(device).lab %}
+  {% if kind not in already_seen %}
+    {{ kind }}:
+      image: {{ lookup("system","clab-devices")[kind].image }}
+    {% do already_seen.append(kind) %}
+  {% endif %}
+{% endfor %}
+  nodes:
+{% set already_seen = [] %}
+{% set local_kind = "" %}
+{% set remote_kind = "" %}
+{% for device, local_port, remote, remote_port in store("topology") %}
+  {% set local_kind = scope(device).lab %}
+  {% set remote_kind = scope(remote).lab %}
+  {% set local_port_map = lookup("system","clab-devices")[local_kind]["port-map"].split() %}
+  {% set remote_port_map = lookup("system","clab-devices")[remote_kind]["port-map"].split() %}
+  {% if device not in already_seen %}
+    {{ device }}:
+      kind: {{ local_kind }}
+      mgmt_ipv4: {{ lookup("topology","addresses", device).main |  ipaddr("address") }}
+    {% do already_seen.append(device) %}    
+    {% do mgmt_address.append(lookup("topology","addresses", device).main) %}    
+  {% endif %}
+  {% if [ remote, remote_port_map[remote_port], device, local_port_map[local_port]] not in endpoints %}
+    {% do endpoints.append([device, local_port_map[local_port], remote, remote_port_map[remote_port]]) %}
+  {% endif %}
+{% endfor %}
+  links:
+{% for device, local_port, remote, remote_port in endpoints if remote in already_seen %}
+  {{ '- endpoints: ["{}:{}", "{}:{}"]'.format(device, local_port, remote, remote_port) }}
+{% endfor %}
+mgmt:
+  network: clab-jerikan                # management network name
+  ipv4_subnet: {{ mgmt_address | cidr_merge('span') }}       # ipv4 range
+  ipv6_subnet: 2001:172:100:100::/80

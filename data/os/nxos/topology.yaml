@@ -1,0 +1,4 @@
+port-map: >-
+   ~{% for iface in range(0,30) -%}
+   {{ "Ethernet1/{}".format(iface) }}
+   {% endfor -%}

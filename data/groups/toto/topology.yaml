@@ -1,0 +1,20 @@
+base: 172.30.0.0/18
+
+# fabric topology, [local port, remote port]
+fabric-topology: 
+  s-spine1:
+    spine1: [1, 1]
+    spine2: [2, 1]
+  s-spine2:
+    spine1: [1, 2]
+    spine2: [2, 2]
+  spine1:
+    to1-p1: [3, 1]
+    to2-p1: [4, 1]
+    to1-p2: [5, 1]
+    to2-p2: [6, 1]
+  spine2:
+    to1-p1: [3, 2]
+    to2-p1: [4, 2]
+    to1-p2: [5, 2]
+    to2-p2: [6, 2]

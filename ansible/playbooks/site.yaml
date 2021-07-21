@@ -49,6 +49,12 @@
     - blade.iosxr
     - done
 
+- hosts: os-nxos:!done
+  gather_facts: false
+  roles:
+    - blade.nxos
+    - done
+    
 - hosts: os-opengear:!done
   gather_facts: false
   roles:

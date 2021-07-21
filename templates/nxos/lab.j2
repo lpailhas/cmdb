@@ -1,0 +1,36 @@
+version 9.2(4) Bios:version                                                                                          
+hostname lab.{{ host }}.blade-group.net
+vdc lab.{{ host }}.blade-group.net id 1
+  limit-resource vlan minimum 16 maximum 4094
+  limit-resource vrf minimum 2 maximum 4096
+  limit-resource port-channel minimum 0 maximum 511
+  limit-resource u4route-mem minimum 248 maximum 248
+  limit-resource u6route-mem minimum 96 maximum 96
+  limit-resource m4route-mem minimum 58 maximum 58
+  limit-resource m6route-mem minimum 8 maximum 8
+
+feature nxapi
+feature scp-server
+feature netconf
+feature grpc
+
+no password strength-check
+username admin password 5 $5$EPNHHB$aFXn892G1EpkqzvnqaQ1fmfYSN2mMGKoJj1T2JUfdED  role network-admin
+ip domain-lookup
+copp profile strict
+snmp-server user admin network-admin auth md5 0x6ef68789f95a8c59e3cc2d54ed4df831 priv 0x6ef68789f95a8c59e3cc2d54ed4df831 localizedkey
+rmon event 1 description FATAL(1) owner PMON@FATAL
+rmon event 2 description CRITICAL(2) owner PMON@CRITICAL
+rmon event 3 description ERROR(3) owner PMON@ERROR
+rmon event 4 description WARNING(4) owner PMON@WARNING
+rmon event 5 description INFORMATION(5) owner PMON@INFO
+
+vlan 1
+
+vrf context management
+
+interface mgmt0
+  vrf member management
+  ip address 10.0.0.15/24
+line console
+line vty

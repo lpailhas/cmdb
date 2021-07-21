@@ -11,6 +11,7 @@ services:
     expose:
       - 43
 
+
   # Image to run Jerikan using the deployed version in git
   jerikan: &jerikan
     build: 
@@ -83,3 +84,20 @@ services:
       - ./ansible:/app/ansible:ro,z
       - ./ci/ansible/ssh_config:/etc/ssh/ssh_config:ro,z
       - $SSH_AUTH_SOCK:/app/ssh-agent.sock:z
+      
+
+  # clab 
+  clab:
+    build:
+      context: ci/clab
+      dockerfile: Dockerfile
+      args:
+        uid: ${oUID}
+        gid: ${oGID}
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - ./output/none/clab.yaml:/app/clab.yaml:ro,z
+      - ./images/:/app/images/:ro,z
+      - ./ci/clab/wrapper.py:/app/wrapper.py:ro,z

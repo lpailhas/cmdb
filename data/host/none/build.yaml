@@ -8,6 +8,7 @@ templates:
   whois-apnic.txt: none/whois-apnic.j2
   geofeed.csv: none/geofeed.j2
   roas.yaml: none/roas.j2
+  clab.yaml: none/clab.j2
 checks:
   - description: "check dns.yaml"
     script: checks/dns.yaml

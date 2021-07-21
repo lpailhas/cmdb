@@ -1,0 +1,4 @@
+templates:
+  config.txt: nxos/main.j2
+  config-base.txt: nxos/base.j2
+  config-lab.txt: nxos/lab.j2

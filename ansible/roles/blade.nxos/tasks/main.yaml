@@ -1,0 +1,81 @@
+- name: create temporary file for complete configuration
+  tempfile:
+    suffix: .txt
+    state: file
+  register: full_configuration
+  check_mode: false
+  changed_when: false
+  tags: always
+
+
+# Version 1 change ok mais diff en check bof, doit respecter le show run parfaitement, galere pour le mode lab 
+- name: build lab configuration
+  assemble:
+    src: "{{ host_dir }}"
+    dest: "{{ full_configuration.path }}"
+    regexp: "^config(|-lab).txt$"
+  check_mode: false
+  changed_when: false
+  tags: lab
+
+- name: build prod configuration
+  assemble:
+    src: "{{ host_dir }}"
+    dest: "{{ full_configuration.path }}"
+    regexp: "^config(|-base).txt$"
+  check_mode: false
+  changed_when: false
+
+- name: diff the running-config against a provided config
+  cisco.nxos.nxos_config:
+    diff_against: intended
+    intended_config: "{{ lookup('file', full_configuration.path ) }}"
+  when: ansible_check_mode
+  tags: always
+
+- name: copy from server to device
+  cisco.nxos.nxos_file_copy:
+    local_file: "{{ full_configuration.path }}"
+    remote_file: config.txt
+  when: not ansible_check_mode
+  tags: always
+  
+
+# Version 2 test 
+#- name: build prod configuration
+#  assemble:
+#    src: "{{ host_dir }}"
+#    dest: "{{ full_configuration.path }}"
+#    regexp: "^config(|-base).txt$"
+#  check_mode: false
+#  changed_when: false
+#  tags: always
+#  
+#  
+#- name: add lab configuration
+#  lineinfile:
+#    dest: "{{ full_configuration.path }}"
+#    insertafter: 'interface mgmt0\n'
+#    line: "  ip address 10.0.0.15/24"
+#  check_mode: false
+#  tags: lab
+#  
+#
+#- name: copy file
+#  copy:
+#    src: "{{ full_configuration.path }}"
+#    dest: "/bootflash/config.txt"
+#    validate: "run bash sudo su" 
+##- name: copy from server to device
+##  cisco.nxos.nxos_file_copy:
+##    local_file: "{{ full_configuration.path }}"
+##    remote_file: config.txt
+##  tags: always
+
+- name: Apply configuration
+  cisco.nxos.nxos_config:
+    diff_against: running
+    replace: config
+    replace_src: config.txt
+  when: not ansible_check_mode
+  tags: always

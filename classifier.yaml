@@ -8,7 +8,7 @@ matchers:
   - '\.lab\.':
       environment: lab
   # Location
-  - '\.(ussfo03)\.':
+  - '\.(ussfo03|toto)\.':
       location: '\1'
       continent: us
   - '\.(sk1)\.':
@@ -20,29 +20,44 @@ matchers:
       member: '\1'
       pod: '\2'
   # Groups
-  - '^to[12]-p\d+\.':
+  - '^to[12]-p\d+\.(ussfo03|sk1)\.':
       groups:
         - tor
         - tor-bgp
         - tor-bgp-compute
-  - '^to[12]-ap\d+\.':
+  - '^to[12]-ap\d+\.(ussfo03|sk1)\.':
       groups:
         - tor
         - tor-bgp
         - tor-bgp-admin
-  - '^to[12]-sp\d+\.':
+  - '^to[12]-sp\d+\.(ussfo03|sk1)\.':
       groups:
         - tor
         - tor-bgp
         - tor-bgp-storage
-  - '^spine\d+\.':
+  - '^spine\d+\.(ussfo03|sk1)\.':
       groups:
         - spine
         - spine-bgp
-  - '^s-spine\d+\.':
+  - '^s-spine\d+\.(ussfo03|sk1)\.':
       groups:
         - sspine
         - sspine-bgp
+  - '^to[12]-p\d+\.toto\.':
+      groups:
+        - evpn
+        - tor
+        - tor-evpn
+  - '^spine\d+\.toto\.':
+      groups:
+        - evpn
+        - spine
+        - spine-evpn
+  - '^s-spine\d+\.toto\.':
+      groups:
+        - evpn
+        - sspine
+        - sspine-evpn
   - '^con\d+-n\d+\.':
       groups:
         - console
@@ -69,12 +84,20 @@ matchers:
   - '^to[12]-p2\.ussfo03\.':
       os: junos
       model: qfx5110-48s
+  - '^to[12]-(p|ap|sp)\d+\.toto\.':
+      os: nxos
+      model: nexus9000
+      lab: vr-n9kv
   - '^spine\d+\.sk1\.':
       os: cumulus
       model: dell-s6010
   - '^spine\d+\.ussfo03\.':
       os: cumulus
       model: wedge100
+  - '^spine\d+\.toto\.':
+      os: nxos
+      model: nexus9000
+      lab: vr-n9kv
   - '^con\d+-n\d+\.sk1\.':
       os: opengear
       model: cm7116-2-sac
@@ -87,6 +110,10 @@ matchers:
   - '^s-spine[12]\.ussfo03\.':
       os: cumulus
       model: wedge100
+  - '^s-spine[12]\.toto\.':
+      os: nxos
+      model: nexus9000
+      lab: vr-n9kv
   - '^edge\d+\.ussfo03\.':
       os: junos
       model: qfx10002-36q
