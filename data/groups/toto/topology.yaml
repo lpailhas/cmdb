@@ -18,3 +18,6 @@ fabric-topology:
     to2-p1: [4, 2]
     to1-p2: [5, 2]
     to2-p2: [6, 2]
+
+underlay: 10.64.0.0/16
+overlay: 10.65.0.0/16

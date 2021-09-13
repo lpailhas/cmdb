@@ -1,17 +1,5 @@
 feature lldp
 
-{% set port_map = lookup('topology','port-map').split() %}
-{% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
-  {% if "." not in remote %}
-    {% set remote = "{}.{}.blade-group.net".format(remote,location) %}
-  {% endif %}
-  
-interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
-  description "{{ "{}:{}".format(remote, remote_port) }}toto"
-  no switchport
-  no shutdown
-{% endfor %}
-
 {% for group in groups %}
   {% include "nxos/{}.j2".format(group) ignore missing %}
 {% endfor %}

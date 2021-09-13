@@ -2,8 +2,16 @@ feature vn-segment
 feature nv overlay 
 feature bgp
 nv overlay evpn 
- 	
 
+{% if "s-spine" in shorthost %}
+{% set index= 219 + member  | int %}	
+{% elif "spine" in shorthost %}
+{% set index= 199 + member  | int %}	
+{% elif "to" in shorthost %}
+{% set index= -2 + member | int + pod  | int %}	
+{% endif %}
+{% set rank = lookup("topology","rank") %}
+{% set underlay = lookup("topology","underlay") %}
 vlan number 10 
  	vn-segment number 10 
 
@@ -16,4 +24,26 @@ vrf context vxlan
   address-family ipv6 unicast 
     route-target both auto
     route-target both auto evpn
+{{ index }}
+{% set port_map = lookup('topology','port-map').split() %}
+{% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
+  {% if "." not in remote %}
+    {% set remote = "{}.{}.blade-group.net".format(remote,location) %}
+  {% endif %}
 
+interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
+  description "{{ "{}:{}".format(remote, remote_port) }}"
+  {% if rank < lookup("topology","rank",remote ) %}
+  ip address {{ underlay | ipsubnet(24,index) | ipaddr(local_port * 2 - 1) | ipaddr('address') }}/31
+  {% else %}
+    {% set scope_remote = scope(remote) %}
+    {% if "s-spine" in scope_remote.shorthost %}
+      {% set remote_index= 219 + scope_remote.member  | int %}	
+    {% elif "spine" in scope_remote.shorthost %}
+      {% set remote_index= 199 + scope_remote.member  | int %}	
+    {% endif %}
+  ip address {{ underlay |ipsubnet(24,remote_index) | ipaddr(remote_port * 2 ) | ipaddr('address')}}/31
+{% endif %}
+  no switchport
+  no shutdown
+{% endfor %}
