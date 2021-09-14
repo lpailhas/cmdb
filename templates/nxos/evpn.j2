@@ -24,26 +24,36 @@ vrf context vxlan
   address-family ipv6 unicast 
     route-target both auto
     route-target both auto evpn
-{{ index }}
 {% set port_map = lookup('topology','port-map').split() %}
+
+interface loopback0
+  ip address {{ underlay | ipsubnet(24,index) | ipsubnet(32,0) }}
+
 {% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
   {% if "." not in remote %}
-    {% set remote = "{}.{}.blade-group.net".format(remote,location) %}
+    {% set remote = "{}.{}.blade-group.net".format(remote,location) -%}
   {% endif %}
-
+  {% set scope_remote = scope(remote) -%}
+  {% if "s-spine" in scope_remote.shorthost %}
+    {% set remote_index= 219 + scope_remote.member  | int -%}	
+  {% elif "spine" in scope_remote.shorthost %}
+    {% set remote_index= 199 + scope_remote.member  | int -%}	
+  {% elif "to" in scope_remote.shorthost %}
+    {% set remote_index= -2 + scope_remote.member | int + scope_remote.pod  | int -%}	
+  {% endif %}
 interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
   description "{{ "{}:{}".format(remote, remote_port) }}"
-  {% if rank < lookup("topology","rank",remote ) %}
+  {% if rank < lookup("topology","rank",remote ) -%}
   ip address {{ underlay | ipsubnet(24,index) | ipaddr(local_port * 2 - 1) | ipaddr('address') }}/31
-  {% else %}
-    {% set scope_remote = scope(remote) %}
-    {% if "s-spine" in scope_remote.shorthost %}
-      {% set remote_index= 219 + scope_remote.member  | int %}	
-    {% elif "spine" in scope_remote.shorthost %}
-      {% set remote_index= 199 + scope_remote.member  | int %}	
-    {% endif %}
+  {% else -%}
   ip address {{ underlay |ipsubnet(24,remote_index) | ipaddr(remote_port * 2 ) | ipaddr('address')}}/31
 {% endif %}
   no switchport
   no shutdown
+
+router bgp {{ index }}
+  address-family ipv4 unicast
+  neighbor {{ remote }} remote-as {{ remote_index }} 
+    address-family ipv4 unicast
+
 {% endfor %}
