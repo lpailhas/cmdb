@@ -1,29 +1,25 @@
 feature vn-segment
 feature nv overlay 
+feature vn-segment-vlan-based
 feature bgp
 nv overlay evpn 
 
 {% if "s-spine" in shorthost %}
-{% set index= 219 + member  | int %}	
+  {% set index= 219 + member  | int %}	
+  {% set local_as= 65220 -%}	
 {% elif "spine" in shorthost %}
-{% set index= 199 + member  | int %}	
+  {% set index= 199 + member  | int %}	
+  {% set local_as= 65200 -%}	
 {% elif "to" in shorthost %}
-{% set index= -2 + member | int + pod  | int %}	
+  {% set index= 1 * member | int + 2 * pod | int - 3 %}	
+  {% set local_as= 65000 + pod | int + 100 * member| int -%}	
 {% endif %}
 {% set rank = lookup("topology","rank") %}
 {% set underlay = lookup("topology","underlay") %}
-vlan number 10 
- 	vn-segment number 10 
+hardware access-list tcam region racl 512 	
+hardware access-list tcam region arp-ether 256 double-wide 	
 
-vrf context vxlan
-  vni 10
-  rd auto 
-  address-family ipv4 unicast
-    route-target both auto
-    route-target both auto evpn
-  address-family ipv6 unicast 
-    route-target both auto
-    route-target both auto evpn
+
 {% set port_map = lookup('topology','port-map').split() %}
 
 interface loopback0
@@ -36,24 +32,41 @@ interface loopback0
   {% set scope_remote = scope(remote) -%}
   {% if "s-spine" in scope_remote.shorthost %}
     {% set remote_index= 219 + scope_remote.member  | int -%}	
+    {% set remote_as= 65220  | int -%}	
   {% elif "spine" in scope_remote.shorthost %}
     {% set remote_index= 199 + scope_remote.member  | int -%}	
+    {% set remote_as= 65200  | int -%}	
   {% elif "to" in scope_remote.shorthost %}
     {% set remote_index= -2 + scope_remote.member | int + scope_remote.pod  | int -%}	
+    {% set remote_as= 65000 + 100 * scope_remote.member | int + scope_remote.pod | int -%}	
   {% endif %}
+
+  {% if rank < lookup("topology","rank",remote ) -%}
+  {% set local_address = underlay | ipsubnet(24,index) | ipsubnet(31,local_port) %}
+  {% else -%}
+  {% set local_address = "{}/31".format(underlay | ipsubnet(24,remote_index) | ipsubnet(31,remote_port) | ippeer ) %} {# ouai c est degeux mais ca marche #}
+{% endif %}
+
 interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
   description "{{ "{}:{}".format(remote, remote_port) }}"
-  {% if rank < lookup("topology","rank",remote ) -%}
-  ip address {{ underlay | ipsubnet(24,index) | ipaddr(local_port * 2 - 1) | ipaddr('address') }}/31
-  {% else -%}
-  ip address {{ underlay |ipsubnet(24,remote_index) | ipaddr(remote_port * 2 ) | ipaddr('address')}}/31
-{% endif %}
+  ip address {{ local_address }}
+  mtu 9216
   no switchport
   no shutdown
 
-router bgp {{ index }}
+{# UNDERLAY #}
+router bgp {{ local_as }}
+  router-id {{ underlay | ipsubnet(24,index) | ipsubnet(32,0) | ipaddr('address') }}
   address-family ipv4 unicast
-  neighbor {{ remote }} remote-as {{ remote_index }} 
+    maximum-paths 32
+  redistribute direct route-map DIRECT-ROUTES-MAP
+  neighbor {{ local_address | ippeer }}
+    remote-as {{ remote_as }}
     address-family ipv4 unicast
-
 {% endfor %}
+
+route-map DIRECT-ROUTES-MAP permit 10
+  match interface loopback 0
+
+route-map UNCHANGED permit 10
+   set ip next-hop unchanged
