@@ -3,6 +3,8 @@ feature nv overlay
 feature vn-segment-vlan-based
 feature bgp
 nv overlay evpn 
+hardware access-list tcam region racl 512 	
+hardware access-list tcam region arp-ether 256 double-wide 	
 
 {% if "s-spine" in shorthost %}
   {% set index= 219 + member  | int %}	
@@ -16,15 +18,20 @@ nv overlay evpn
 {% endif %}
 {% set rank = lookup("topology","rank") %}
 {% set underlay = lookup("topology","underlay") %}
-hardware access-list tcam region racl 512 	
-hardware access-list tcam region arp-ether 256 double-wide 	
-
-
 {% set port_map = lookup('topology','port-map').split() %}
 
 interface loopback0
-  ip address {{ underlay | ipsubnet(24,index) | ipsubnet(32,0) }}
-
+  ip address {{ underlay | ipsubnet(24,index) | ipsubnet(32,0) }} tag 666
+{% if "s-spine-evpn" in groups %} {# MULticast address #}
+  ip pim sparse-mode
+feature pim
+ip pim rp-address 100.1.1.1 group-list 224.0.0.0/4
+ip pim anycast-rp 100.1.1.1 10.1.1.1
+ip pim anycast-rp 100.1.1.1 20.1.1.1
+interface loopback1
+  ip address 100.1.1.1/32
+  ip pim sparse-mode
+{% endif %}
 {% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
   {% if "." not in remote %}
     {% set remote = "{}.{}.blade-group.net".format(remote,location) -%}
@@ -37,7 +44,7 @@ interface loopback0
     {% set remote_index= 199 + scope_remote.member  | int -%}	
     {% set remote_as= 65200  | int -%}	
   {% elif "to" in scope_remote.shorthost %}
-    {% set remote_index= -2 + scope_remote.member | int + scope_remote.pod  | int -%}	
+    {% set remote_index= 1 * scope_remote.member | int + 2 * scope_remote.pod  | int - 3 -%}	
     {% set remote_as= 65000 + 100 * scope_remote.member | int + scope_remote.pod | int -%}	
   {% endif %}
 
@@ -49,7 +56,7 @@ interface loopback0
 
 interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
   description "{{ "{}:{}".format(remote, remote_port) }}"
-  ip address {{ local_address }}
+  ip address {{ local_address }} tag 666
   mtu 9216
   no switchport
   no shutdown
@@ -59,14 +66,47 @@ router bgp {{ local_as }}
   router-id {{ underlay | ipsubnet(24,index) | ipsubnet(32,0) | ipaddr('address') }}
   address-family ipv4 unicast
     maximum-paths 32
-  redistribute direct route-map DIRECT-ROUTES-MAP
+    redistribute direct route-map DIRECT-ROUTES-MAP
   neighbor {{ local_address | ippeer }}
+    description "{{ "UNDERLAY_{}".format(remote) }}"
     remote-as {{ remote_as }}
     address-family ipv4 unicast
 {% endfor %}
 
-route-map DIRECT-ROUTES-MAP permit 10
-  match interface loopback 0
+{# OVERLAY #}
+{% for device in devices("environment","location", "groups==evpn") if not device == "{}.blade-group.net".format(host,location) %}
+  {% set scope_remote = scope(device) -%}
+  {% if "s-spine" in scope_remote.shorthost %}
+    {% set remote_index= 219 + scope_remote.member  | int -%}	
+    {% set remote_as= 65220  | int -%}	
+  {% elif "spine" in scope_remote.shorthost %}
+    {% set remote_index= 199 + scope_remote.member  | int -%}	
+    {% set remote_as= 65200  | int -%}	
+  {% elif "to" in scope_remote.shorthost %}
+    {% set remote_index= 1 * scope_remote.member | int + 2 * scope_remote.pod  | int - 3 -%}	
+    {% set remote_as= 65000 + 100 * scope_remote.member | int + scope_remote.pod | int -%}	
+  {% endif %}
+  {% if not local_as == remote_as %}
+  router bgp {{ local_as }}
+  neighbor {{ underlay | ipsubnet(24,remote_index) | ipsubnet(32,0) | ipaddr('address') }}
+    description "{{ "OVERLAY_{}".format(device) }}"
+    update-source loopback0
+    ebgp-multihop 3
+    remote-as {{ remote_as }}
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      disable-peer-as-check
+      route-map NEXT-HOP-UNCH out
+    {% if "s-spine-evpn" in groups %}
+      route-reflector-client
+    {% endif %}
+  {% endif %} 
+{% endfor %}
 
-route-map UNCHANGED permit 10
-   set ip next-hop unchanged
+route-map NEXT-HOP-UNCH permit 10
+  set ip next-hop unchanged
+
+route-map DIRECT-ROUTES-MAP permit 10
+  match tag 666
+
