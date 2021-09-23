@@ -99,5 +99,6 @@ services:
       DOCKER_TLS_CERTDIR: ""
     volumes:
       - ./output/none/clab.yaml:/app/clab.yaml:ro,z
+      - ./ci/clab/id_rsa.pub:/app/id_rsa.pub:ro,z
       - ./images/:/app/images/:ro,z
       - ./ci/clab/wrapper.py:/app/wrapper.py:ro,z

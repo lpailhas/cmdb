@@ -20,4 +20,19 @@ clab-devices:
       ~{% for iface in range(0,90) -%}
       {{ "eth{}".format(iface) }}
       {% endfor -%}
-  
+  linux:
+    subnet: 172.30.24.128/25
+    image: linuxserver/openssh-server
+    port-map: >-
+      ~{% for iface in range(0,90) -%}
+      {{ "eth{}".format(iface) }}
+      {% endfor -%}
+    env:
+      PUBLIC_KEY_FILE: "/id_rsa.pub"
+      PUID: 1000
+      PGID: 1000
+      TZ: "Europe/London"
+      SUDO_ACCESS: "true"
+      PASSWORD_ACCESS: "true"
+      USER_PASSWORD: admin
+      USER_NAME: admin

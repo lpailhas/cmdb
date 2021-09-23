@@ -5,7 +5,20 @@ name: lab
 topology:
   kinds:
 {% set already_seen = [] %}
+{% set lab_sub = lookup("system","clab-devices").linux.subnet %}
+{% set lab_count = namespace(value=1) %}
 {% for device, local_port, remote, remote_port in store("topology") %}
+  {% if "linux" in remote and "linux" not in already_seen %} {# Specific device #}
+   linux:
+      image: {{ lookup("system","clab-devices").linux.image }}
+      env:
+    {% for env, value in lookup("system","clab-devices").linux.env.items() %}
+        {{ "{}: {}".format(env,value) }}
+    {% endfor %}
+      binds:
+        - /app/id_rsa.pub:/id_rsa.pub
+    {% do already_seen.append("linux") %}
+  {% endif %}
   {% set kind = scope(device).lab %}
   {% if kind not in already_seen %}
     {{ kind }}:
@@ -19,7 +32,11 @@ topology:
 {% set remote_kind = "" %}
 {% for device, local_port, remote, remote_port in store("topology") %}
   {% set local_kind = scope(device).lab %}
+  {% if "linux" in remote %} {# Specific device #}
+    {% set remote_kind = "linux" %}
+  {% else %}
   {% set remote_kind = scope(remote).lab %}
+  {% endif %}
   {% set local_port_map = lookup("system","clab-devices")[local_kind]["port-map"].split() %}
   {% set remote_port_map = lookup("system","clab-devices")[remote_kind]["port-map"].split() %}
   {% if device not in already_seen %}
@@ -29,12 +46,21 @@ topology:
     {% do already_seen.append(device) %}    
     {% do mgmt_address.append(lookup("topology","addresses", device).main) %}    
   {% endif %}
-  {% if [ remote, remote_port_map[remote_port], device, local_port_map[local_port]] not in endpoints %}
+  {% if "linux" in remote %} {# Specific device #}
+  {{ "{}-{}".format(remote,device) }}:
+      kind: {{ remote_kind }}
+      mgmt_ipv4: {{ lab_sub |  ipaddr(lab_count.value) | ipaddr("address") }}
+    {% do mgmt_address.append(lab_sub |  ipaddr(lab_count.value)) %}    
+    {% set lab_count.value = lab_count.value + 1 %}
+    {% do endpoints.append([device, local_port_map[local_port], "{}-{}".format(remote,device), remote_port_map[remote_port]]) %}
+  {% endif %}
+  {% if [ remote, remote_port_map[remote_port], device, local_port_map[local_port]] not in endpoints and "linux" not in remote %}
     {% do endpoints.append([device, local_port_map[local_port], remote, remote_port_map[remote_port]]) %}
   {% endif %}
 {% endfor %}
+
   links:
-{% for device, local_port, remote, remote_port in endpoints if remote in already_seen %}
+{% for device, local_port, remote, remote_port in endpoints if remote in already_seen or "linux" in remote  %}
   {{ '- endpoints: ["{}:{}", "{}:{}"]'.format(device, local_port, remote, remote_port) }}
 {% endfor %}
 mgmt:

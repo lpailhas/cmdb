@@ -26,10 +26,10 @@ for item, value in parsed_yaml_file.get("topology").get("kinds").items():
             os.system('ln -fs /app/images/{}/* /app/vrnetlab/{}/'.format(type.group(1),type.group(1)))
             os.system('cd /app/vrnetlab/{} && make'.format(type.group(1)))
 
-# Check if all necessary containers exists
+# Check if all needed "vr" containers exists
 img_docker = [ image.tags[0] for image in client.images.list(name='vrnetlab/*')]
 for item, value in parsed_yaml_file.get("topology").get("kinds").items():
-    if value['image']not in img_docker:
+    if item.startswith("vr") and value['image']not in img_docker:
         sys.exit("container {} don't exist and no image available".format(value['image']))
 
 os.system('/app/containerlab/bin/containerlab deploy --reconfigure --topo /app/clab.yaml')
