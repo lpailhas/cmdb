@@ -242,9 +242,9 @@ def myport(ctx, arg):
             if device == ctx.parent['shorthost']:
                 if type(port[0]) is list:
                     for i in port:
-                        temp.append([ device, i[0], i[1]])
+                        temp.append([ remote, i[0], i[1]])
                 else:
-                    temp.append([ device, port[0], port[1]])
+                    temp.append([ remote, port[0], port[1]])
     return temp
 
 @jinjafilter
