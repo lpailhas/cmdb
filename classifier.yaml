@@ -16,7 +16,7 @@ matchers:
       continent: apac
   - '^[^.]+(\d+)\.':
       member: '\1'
-  - '^to([12])-[as]?p(\d+)\.':
+  - '^to([12])-[ase]?p(\d+)\.':
       member: '\1'
       pod: '\2'
   # Groups
@@ -43,6 +43,12 @@ matchers:
       groups:
         - sspine
         - sspine-bgp
+  - '^to[12]-ep\d+\.toto\.':
+      groups:
+        - evpn
+        - tor
+        - tor-edge
+        - tor-evpn
   - '^to[12]-p\d+\.toto\.':
       groups:
         - evpn
@@ -84,7 +90,7 @@ matchers:
   - '^to[12]-p2\.ussfo03\.':
       os: junos
       model: qfx5110-48s
-  - '^to[12]-(p|ap|sp)\d+\.toto\.':
+  - '^to[12]-(p|ep)\d+\.toto\.':
       os: nxos
       model: nexus9000
       lab: vr-n9kv

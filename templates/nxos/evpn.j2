@@ -6,15 +6,18 @@ nv overlay evpn
 hardware access-list tcam region racl 512 	
 hardware access-list tcam region arp-ether 256 double-wide 	
 
-{% if "s-spine" in shorthost %}
+{% if "sspine-evpn" in groups %}
   {% set index= 219 + member  | int %}	
   {% set local_as= 65220 -%}	
-{% elif "spine" in shorthost %}
+{% elif "spine-evpn" in groups %}
   {% set index= 199 + member  | int %}	
   {% set local_as= 65200 -%}	
-{% elif "to" in shorthost %}
+{% elif "tor-edge" in groups %}
+  {% set index= 237 + 1 * member | int + 2 * pod | int %}	
+  {% set local_as= 65000 -%}	
+{% elif "tor-evpn" in groups %}
   {% set index= 1 * member | int + 2 * pod | int - 3 %}	
-  {% set local_as= 65000 + pod | int + 100 * member| int -%}	
+  {% set local_as= 65000 -%}	
 {% endif %}
 {% set rank = lookup("topology","rank") %}
 {% set underlay = lookup("topology","underlay") %}
@@ -32,20 +35,24 @@ interface loopback1
   ip address 100.1.1.1/32
   ip pim sparse-mode
 {% endif %}
+
 {% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
   {% if "." not in remote %}
     {% set remote = "{}.{}.blade-group.net".format(remote,location) -%}
   {% endif %}
   {% set scope_remote = scope(remote) -%}
-  {% if "s-spine" in scope_remote.shorthost %}
+  {% if "sspine-evpn" in scope_remote.groups %}
     {% set remote_index= 219 + scope_remote.member  | int -%}	
     {% set remote_as= 65220  | int -%}	
-  {% elif "spine" in scope_remote.shorthost %}
+  {% elif "spine-evpn" in scope_remote.groups %}
     {% set remote_index= 199 + scope_remote.member  | int -%}	
     {% set remote_as= 65200  | int -%}	
-  {% elif "to" in scope_remote.shorthost %}
+  {% elif "tor-evpn" in scope_remote.groups %}
     {% set remote_index= 1 * scope_remote.member | int + 2 * scope_remote.pod  | int - 3 -%}	
-    {% set remote_as= 65000 + 100 * scope_remote.member | int + scope_remote.pod | int -%}	
+    {% set remote_as= 65000 -%}	
+  {% elif "tor-edge" in scope_remote.groups %}
+    {% set remote_index= 237 + 1 * member | int + 2 * pod | int -%}	
+    {% set remote_as= 65000 -%}	
   {% endif %}
 
   {% if rank < lookup("topology","rank",remote ) -%}
@@ -58,6 +65,7 @@ interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
   description "{{ "{}:{}".format(remote, remote_port) }}"
   ip address {{ local_address }} tag 666
   mtu 9216
+  ip pim sparse-mode
   no switchport
   no shutdown
 
@@ -71,23 +79,20 @@ router bgp {{ local_as }}
     description "{{ "UNDERLAY_{}".format(remote) }}"
     remote-as {{ remote_as }}
     address-family ipv4 unicast
+  {% if "tor-edge" in groups %}
+    allowas-in
+  {% endif %}
 {% endfor %}
 
 {# OVERLAY #}
-{% for device in devices("environment","location", "groups==evpn") if not device == "{}.blade-group.net".format(host,location) %}
+{% for device in devices("environment","location", "groups==tor-evpn") if not device == "{}.blade-group.net".format(host,location) %}
   {% set scope_remote = scope(device) -%}
-  {% if "s-spine" in scope_remote.shorthost %}
-    {% set remote_index= 219 + scope_remote.member  | int -%}	
-    {% set remote_as= 65220  | int -%}	
-  {% elif "spine" in scope_remote.shorthost %}
-    {% set remote_index= 199 + scope_remote.member  | int -%}	
-    {% set remote_as= 65200  | int -%}	
-  {% elif "to" in scope_remote.shorthost %}
-    {% set remote_index= 1 * scope_remote.member | int + 2 * scope_remote.pod  | int - 3 -%}	
-    {% set remote_as= 65000 + 100 * scope_remote.member | int + scope_remote.pod | int -%}	
-  {% endif %}
-  {% if not local_as == remote_as %}
-  router bgp {{ local_as }}
+  {% set remote_index= 1 * scope_remote.member | int + 2 * scope_remote.pod  | int - 3 -%}	
+  {% set remote_as= 65000 -%}	
+router bgp {{ local_as }}
+  address-family l2vpn evpn
+    nexthop route-map NEXT-HOP-UNCH
+    retain route-target all
   neighbor {{ underlay | ipsubnet(24,remote_index) | ipsubnet(32,0) | ipaddr('address') }}
     description "{{ "OVERLAY_{}".format(device) }}"
     update-source loopback0
@@ -96,12 +101,10 @@ router bgp {{ local_as }}
     address-family l2vpn evpn
       send-community
       send-community extended
-      disable-peer-as-check
       route-map NEXT-HOP-UNCH out
-    {% if "s-spine-evpn" in groups %}
-      route-reflector-client
-    {% endif %}
-  {% endif %} 
+  {% if "tor-edge" in groups %}
+    route-reflector-client
+  {% endif %}
 {% endfor %}
 
 route-map NEXT-HOP-UNCH permit 10

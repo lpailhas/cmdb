@@ -87,6 +87,8 @@ devices:
  - to2-p1.toto.blade-group.net
  - to1-p2.toto.blade-group.net
  - to2-p2.toto.blade-group.net
+ - to1-ep1.toto.blade-group.net
+ - to2-ep1.toto.blade-group.net
  ## Console
  - con1-n1.ussfo03.blade-group.net
  - con1-n2.ussfo03.blade-group.net

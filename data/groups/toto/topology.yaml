@@ -5,6 +5,12 @@ fabric-topology:
   s-spine1:
     spine1: [1, 1]
     spine2: [2, 1]
+    to1-ep1:
+      - [3, 1]
+      - [4, 2]
+    to2-ep1:
+      - [5, 1]
+      - [6, 2]
   s-spine2:
     spine1: [1, 2]
     spine2: [2, 2]
