@@ -40,3 +40,5 @@ peers: {}
 
 validators:
   - 10.0.0.31
+
+evpn_as: 666

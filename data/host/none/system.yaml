@@ -31,8 +31,8 @@ clab-devices:
       PUBLIC_KEY_FILE: "/id_rsa.pub"
       PUID: 1000
       PGID: 1000
-      TZ: "Europe/London"
+      TZ: "Europe/Paris"
       SUDO_ACCESS: "true"
-      PASSWORD_ACCESS: "true"
-      USER_PASSWORD: admin
+      #PASSWORD_ACCESS: "true"
+      #USER_PASSWORD: admin
       USER_NAME: admin

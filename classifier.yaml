@@ -47,8 +47,8 @@ matchers:
       groups:
         - evpn
         - tor
-        - tor-edge
         - tor-evpn
+        - tor-evpn-edge
   - '^to[12]-p\d+\.toto\.':
       groups:
         - evpn
@@ -120,9 +120,10 @@ matchers:
       os: nxos
       model: nexus9000
       lab: vr-n9kv
-  - '^edge\d+\.ussfo03\.':
+  - '^edge\d+\.(ussfo03|toto)\.':
       os: junos
       model: qfx10002-36q
+      lab: vr-vmx
   - '^edge\d+\.sk1\.':
       os: iosxr
       model: asr9k

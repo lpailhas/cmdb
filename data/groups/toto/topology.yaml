@@ -25,5 +25,31 @@ fabric-topology:
     to1-p2: [5, 2]
     to2-p2: [6, 2]
 
+clients:
+  ovh:
+    vnil3: 1000
+    vlan: 2
+    vxlan:
+      grosl2:
+        vni: 1001
+        subnet: 10.0.0.0/8
+        ports:
+          to1-p1: 10-11
+          to1-p2: 10-11
+      moinsgrosl2:
+        vni: 1002
+        subnet: 192.168.0.0/24
+        ports:
+          to1-p1: 12-13
+          to1-p2: 12-13
+  toto:
+    vnil3: 2000
+    vlan: 3
+    vxlan:
+      petitl2:
+        vni: 2001
+        subnet: 10.0.0.0/24
+        ports: {}
+        
 underlay: 10.64.0.0/16
 overlay: 10.65.0.0/16
