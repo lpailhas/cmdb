@@ -54,3 +54,36 @@
         src: "{{ host_dir }}/config-irr.txt"
         comment: cmdb update of IRR configuration
         update: replace
+
+# Upload lab configuration
+- tags: lab
+  block:
+    - name: create temporary file for complete configuration
+      tempfile:
+        suffix: .txt
+        state: file
+      register: full_configuration
+      check_mode: false
+      changed_when: false
+    - name: build lab configuration
+      assemble:
+        src: "{{ host_dir }}"
+        dest: "{{ full_configuration.path }}"
+        regexp: "^config(-lab|-irr).txt$"
+      check_mode: false
+      changed_when: false
+    - name: replace configuration
+      junipernetworks.junos.junos_config:
+        src: "{{ full_configuration.path }}"
+        comment: cmdb update of complete configuration
+        update: override
+        confirm: 2
+    - name: wait a bit before confirming
+      when: not ansible_check_mode
+      pause:
+        seconds: 20
+    - name: confirm configuration change
+      when: not ansible_check_mode
+      junipernetworks.junos.junos_config:
+        confirm_commit: true
+        check_commit: true

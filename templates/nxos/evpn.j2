@@ -47,6 +47,9 @@ interface {{ port_map[local_port|store("topology", remote, remote_port)]}}
   ip address {{ local_address }}
   mtu 9216
   no switchport
+  {% if "edge" in remote %}
+  vrf member internet
+  {% endif %}
   no shutdown
 
 router bgp {{ local_as }}
@@ -102,6 +105,11 @@ router bgp {{ local_as }}
 route-map NEXT-HOP-UNCH permit 10
   set ip next-hop unchanged
 
+{# internet vrf #}
+{% if "tor-evpn-edge" in groups %}
+vrf context internet
+{% endif %}
+
 {# vxlan #}
 {% if not "tor-evpn-edge" in groups and "tor-evpn" in groups %}
 fabric forwarding anycast-gateway-mac 0000.2222.3333
@@ -110,9 +118,6 @@ interface nve1
   source-interface loopback0
   host-reachability protocol bgp
   
-{# internet vrf #}
-{% if "tor-evpn-edge" in groups %}
-{% endif %}
 
 {# l3 client #}
   {% set ns = namespace(vlan=3000) %}

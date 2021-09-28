@@ -22,6 +22,7 @@ FROM docker:19.03-dind
 WORKDIR /app
 RUN apk add --no-cache \
         git \
+        tar \
         make \
         python3 
 ENV PYTHONUSERBASE=/app/python

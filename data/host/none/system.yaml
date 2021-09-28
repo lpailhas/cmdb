@@ -20,6 +20,14 @@ clab-devices:
       ~{% for iface in range(0,90) -%}
       {{ "eth{}".format(iface) }}
       {% endfor -%}
+  vr-vmx:
+    image: vrnetlab/vr-vmx:21.1R1.11
+    os-map:
+      - junos
+    port-map: >-
+      ~{% for iface in range(1,90) -%}
+      {{ "eth{}".format(iface) }}
+      {% endfor -%}
   linux:
     subnet: 172.30.24.128/25
     image: linuxserver/openssh-server

@@ -1,6 +1,27 @@
 routing-instances internet {
     protocols {
       bgp {
+{% for shortremote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport %}
+  {% if "." not in shortremote %}
+    {% set remote = "{}.{}.blade-group.net".format(shortremote,location) -%}
+  {% endif %}
+  {% set remote_index= lookup("topology","index", remote) -%}	
+  {% set underlay = lookup("topology","underlay") %}
+  {% set remote_as = lookup("bgp","evpn_as", remote) %}
+  {% set remote_address = underlay | ipsubnet(24,remote_index) | ipsubnet(31,remote_port) %} {# ouai c est degeux mais ca marche #}
+        group ipv{{ remote_address|ipv }}-{{ shortremote }} {
+          type external;
+          multipath multiple-as;
+          description "{{ shortremote }} AS{{ remote_as }}";
+          import CORE-IN-V{{ remote_address|ipv }};
+          export CORE-OUT-V{{ remote_address|ipv }};
+          neighbor {{ remote_address | ipaddr('address') }} {
+              description {{ shortremote }};
+              peer-as {{ remote_as }};
+              local-as {{ lookup("bgp", "evpn_as") }};
+          }
+        }
+{% endfor %}
 {% set sspines = devices("environment", "location", "groups==sspine-bgp") %}
 {% for sspine in sspines %}
   {% for port, device in lookup("topology", "ports", sspine).items() if device == shorthost %}

@@ -1,0 +1,74 @@
+{% set protectre = {"vrrp": false, "ospf": false, "bgp": false, "bfd": false, "dhcp": false, "rtr": false } %}
+
+{% include "junos/base.j2" %}
+
+routing-options {
+  forwarding-table {
+    export ecmp-default;
+  {% if "edge" in groups %}
+    ecmp-fast-reroute;
+    indirect-next-hop;
+  {% endif %}
+  }
+}
+
+policy-options {
+  policy-statement ecmp-default {
+    then {
+      load-balance per-packet;
+    }
+  }
+  policy-statement REJECT-ALL {
+    then reject;
+  }
+}
+
+interfaces {
+    fxp0 {
+        unit 0 {
+            family inet {
+                address 10.0.0.15/24;
+            }
+        }
+    }
+}
+chassis {
+    fpc 0 {
+        pic 0 {
+            pic-mode 100G;
+            interface-type et;
+            number-of-ports 96;
+        }
+        lite-mode;
+    }
+}
+system {
+    login {
+        user admin {
+            uid 2000;
+            class super-user;
+            authentication {
+                encrypted-password "$6$vtuD4Sfg$vY.a.1h8R9TA1wzyu8eA7g/dxYCLjsGRPN/XgzoEFeWBlWfsEpTB7kQjLfBAQ4Bkt.lXSdaVRdxoOAhG5s8KI/"; ## SECRET-DATA
+            }
+        }
+    }
+}
+
+policy-options  {
+  prefix-list ipv4-admin {
+      10.0.0.2/32;
+  }
+}
+
+{% include "junos/edge-interfaces.j2" %}
+{% include "junos/edge-validation.j2" %}
+{% include "junos/edge-bgp.j2" %}
+{% include "junos/edge-ibgp.j2" %}
+{% include "junos/edge-sampling.j2" %}
+{% include "junos/edge-fabric.j2" %}
+
+
+
+{% if lookup('system', 'protect-re') %} {# MUST BE THE LAST #}
+  {% include "junos/firewall.j2" %}
+{% endif %}

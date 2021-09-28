@@ -24,6 +24,10 @@ fabric-topology:
     to2-p1: [4, 2]
     to1-p2: [5, 2]
     to2-p2: [6, 2]
+  to1-ep1:
+    edge1:
+      - [3, 11]
+      - [4, 13]
 
 clients:
   ovh:

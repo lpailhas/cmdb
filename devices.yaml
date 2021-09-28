@@ -98,6 +98,7 @@ devices:
  - gateway1.ussfo03.blade-group.net
  - gateway2.ussfo03.blade-group.net
  # Edge devices
+ - edge1.toto.blade-group.net
  - edge1.sk1.blade-group.net
  - edge2.sk1.blade-group.net
  - edge1.ussfo03.blade-group.net

@@ -126,3 +126,29 @@ protocols lldp interface {{ interface }};
     {% endfor %}
   {% endfor %}
 {% endfor %}
+
+{% for remote, local_port, remote_port in lookup('topology','fabric-topology').items() | myport  %}
+  {% if "." not in remote %}
+    {% set remote = "{}.{}.blade-group.net".format(remote,location) -%}
+  {% endif %}
+  {% set remote_index= lookup("topology","index",remote) -%}	
+  {% set underlay = lookup("topology","underlay") %}
+  {% set local_address = "{}/31".format(underlay | ipsubnet(24,remote_index) | ipsubnet(31,remote_port) | ippeer ) %} {# ouai c est degeux mais ca marche #}
+  {% set interface = "et-0/0/{}".format(local_port|store("topology", remote, remote_port)) %}
+interfaces {
+    {{ interface }} {
+        unit 0 {
+            family inet {
+                address {{ local_address }};
+            }
+        }
+    }
+}
+routing-instances {
+  internet {
+      instance-type virtual-router;
+      interface {{ interface }}.0;
+  }
+}
+protocols lldp interface {{ interface }};
+{% endfor %}

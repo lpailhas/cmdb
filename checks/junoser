@@ -1,14 +1,16 @@
 #!/bin/sh
 # Check syntax of device using junoser and transform it to the "set" syntax.
 
-url=${JUNOSER_URL:-127.0.0.1:4567}
-out=output/"$1"/config-set.txt
-status=$(sed -e 's/^ *protect://' -e 's/^ *replace://' -e 's/^ *apply-flags omit;//' output/"$1"/config.txt \
-             | curl -sS \
-                    -H Expect: --data-binary @- \
-                    -w "%{http_code}" \
-                    -o $out \
-                  $url/format)
+for conf in "config" "config-lab"
+do
+  url=${JUNOSER_URL:-127.0.0.1:4567}
+  out=output/"$1"/"$conf"-set.txt
+  status=$(sed -e 's/^ *protect://' -e 's/^ *replace://' -e 's/^ *apply-flags omit;//' output/"$1"/"$conf".txt \
+               | curl -sS \
+                      -H Expect: --data-binary @- \
+                      -w "%{http_code}" \
+                      -o $out \
+                      $url/format)
 
 ! grep -E '^set policy-options policy-statement [^ ]+ from' $out || {
     >&2 echo "Policy statement with a 'from' outside a term"
@@ -18,7 +20,6 @@ status=$(sed -e 's/^ *protect://' -e 's/^ *replace://' -e 's/^ *apply-flags omit
 case $status in
     200)
         sort -o $out $out
-        exit 0
         ;;
     422)
         >&2 cat $out
@@ -29,3 +30,5 @@ case $status in
         exit 11
         ;;
 esac
+done
+exit 0
